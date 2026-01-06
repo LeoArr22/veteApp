@@ -105,7 +105,7 @@ class Consulta(Base):
     observaciones = Column(Text)
 
     paciente_id = Column(Integer, ForeignKey("pacientes.id"), nullable=False)
-    veterinario_id = Column(Integer, ForeignKey("veterinarios.id"))
+    veterinario_id = Column(Integer, ForeignKey("veterinarios.id"), nullable=False)
 
     paciente = relationship(
         "Paciente",
@@ -123,8 +123,8 @@ class Consulta(Base):
         cascade="all, delete-orphan"
     )
 
-    medicamentos = relationship(
-        "Medicacion",
+    tratamientos = relationship(
+        "Tratamiento",
         back_populates="consulta",
         cascade="all, delete-orphan"
     )
@@ -152,11 +152,7 @@ class ArchivoClinico(Base):
     fecha_subida = Column(DateTime, default=datetime.utcnow, nullable=False)
     existe = Column(Boolean, default=True)
 
-    consulta_id = Column(
-        Integer,
-        ForeignKey("consultas.id"),
-        nullable=False
-    )
+    consulta_id = Column(Integer, ForeignKey("consultas.id"), nullable=False)
 
     consulta = relationship(
         "Consulta",
@@ -173,8 +169,8 @@ class ArchivoClinico(Base):
 # ---------------------------------------------------------
 # MEDICACIÓN RECETADA
 # ---------------------------------------------------------
-class Medicacion(Base):
-    __tablename__ = "medicaciones"
+class Tratamiento(Base):
+    __tablename__ = "tratamientos"
 
     id = Column(Integer, primary_key=True)
     nombre = Column(String, nullable=False)
@@ -191,11 +187,11 @@ class Medicacion(Base):
 
     consulta = relationship(
         "Consulta",
-        back_populates="medicamentos"
+        back_populates="tratamientos"
     )
 
     def __repr__(self):
         return (
-            f"<Medicacion(id={self.id}, nombre='{self.nombre}', "
+            f"<Tratamiento(id={self.id}, nombre='{self.nombre}', "
             f"dosis='{self.dosis}')>"
         )
