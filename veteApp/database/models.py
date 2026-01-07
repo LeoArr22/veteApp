@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime
 
 from sqlalchemy import (
     Column,
@@ -22,33 +22,43 @@ class Dueno(Base):
     __tablename__ = "duenos"
 
     id = Column(Integer, primary_key=True)
+
+    dni = Column(String(20), nullable=False, unique=True)
+
     nombre = Column(String, nullable=False)
     telefono = Column(String)
     email = Column(String)
     direccion = Column(String)
 
+    activo = Column(Boolean, default=True, nullable=False)
+
     pacientes = relationship(
         "Paciente",
-        back_populates="dueno",
-        cascade="all, delete-orphan"
+        back_populates="dueno"
     )
 
     def __repr__(self):
-        return f"<Dueno(id={self.id}, nombre='{self.nombre}')>"
+        return (
+            f"<Dueno(id={self.id}, dni='{self.dni}', "
+            f"nombre='{self.nombre}', activo={self.activo})>"
+        )
+
 
 
 # ---------------------------------------------------------
-# PACIENTE (MASCOTA)
+# PACIENTE
 # ---------------------------------------------------------
 class Paciente(Base):
     __tablename__ = "pacientes"
 
     id = Column(Integer, primary_key=True)
     nombre = Column(String, nullable=False)
-    especie = Column(String, nullable=False)      # gato, perro
+    especie = Column(String, nullable=False)
     raza = Column(String)
-    sexo = Column(String)                         # macho / hembra
+    sexo = Column(String)
     fecha_nacimiento = Column(Date)
+
+    activo = Column(Boolean, default=True, nullable=False)
 
     dueno_id = Column(Integer, ForeignKey("duenos.id"), nullable=False)
 
@@ -60,15 +70,11 @@ class Paciente(Base):
     consultas = relationship(
         "Consulta",
         back_populates="paciente",
-        cascade="all, delete-orphan",
         order_by="Consulta.fecha"
     )
 
     def __repr__(self):
-        return (
-            f"<Paciente(id={self.id}, nombre='{self.nombre}', "
-            f"especie='{self.especie}')>"
-        )
+        return f"<Paciente(id={self.id}, nombre='{self.nombre}', activo={self.activo})>"
 
 
 # ---------------------------------------------------------
@@ -80,7 +86,7 @@ class Veterinario(Base):
     id = Column(Integer, primary_key=True)
     nombre = Column(String, nullable=False)
     matricula = Column(String, unique=True)
-    activo = Column(Boolean, default=True)
+    activo = Column(Boolean, default=True, nullable=False)
 
     consultas = relationship(
         "Consulta",
@@ -88,7 +94,7 @@ class Veterinario(Base):
     )
 
     def __repr__(self):
-        return f"<Veterinario(id={self.id}, nombre='{self.nombre}')>"
+        return f"<Veterinario(id={self.id}, nombre='{self.nombre}', activo={self.activo})>"
 
 
 # ---------------------------------------------------------
@@ -103,6 +109,8 @@ class Consulta(Base):
     motivo = Column(String, nullable=False)
     diagnostico = Column(Text)
     observaciones = Column(Text)
+
+    activo = Column(Boolean, default=True, nullable=False)
 
     paciente_id = Column(Integer, ForeignKey("pacientes.id"), nullable=False)
     veterinario_id = Column(Integer, ForeignKey("veterinarios.id"), nullable=False)
@@ -119,21 +127,16 @@ class Consulta(Base):
 
     archivos = relationship(
         "ArchivoClinico",
-        back_populates="consulta",
-        cascade="all, delete-orphan"
+        back_populates="consulta"
     )
 
     tratamientos = relationship(
         "Tratamiento",
-        back_populates="consulta",
-        cascade="all, delete-orphan"
+        back_populates="consulta"
     )
 
     def __repr__(self):
-        return (
-            f"<Consulta(id={self.id}, fecha={self.fecha.date()}, "
-            f"motivo='{self.motivo}')>"
-        )
+        return f"<Consulta(id={self.id}, fecha={self.fecha.date()}, activo={self.activo})>"
 
 
 # ---------------------------------------------------------
@@ -145,12 +148,11 @@ class ArchivoClinico(Base):
     id = Column(Integer, primary_key=True)
     nombre_original = Column(String, nullable=False)
     ruta_archivo = Column(String, nullable=False)
-
     tipo = Column(String, nullable=False)
-    # imagen, radiografia, estudio, analisis, pdf
 
     fecha_subida = Column(DateTime, default=datetime.utcnow, nullable=False)
-    existe = Column(Boolean, default=True)
+
+    activo = Column(Boolean, default=True, nullable=False)
 
     consulta_id = Column(Integer, ForeignKey("consultas.id"), nullable=False)
 
@@ -160,14 +162,11 @@ class ArchivoClinico(Base):
     )
 
     def __repr__(self):
-        return (
-            f"<ArchivoClinico(id={self.id}, "
-            f"nombre='{self.nombre_original}', tipo='{self.tipo}')>"
-        )
+        return f"<ArchivoClinico(id={self.id}, nombre='{self.nombre_original}', activo={self.activo})>"
 
 
 # ---------------------------------------------------------
-# MEDICACIÓN RECETADA
+# TRATAMIENTO
 # ---------------------------------------------------------
 class Tratamiento(Base):
     __tablename__ = "tratamientos"
@@ -179,11 +178,9 @@ class Tratamiento(Base):
     duracion = Column(String)
     observaciones = Column(Text)
 
-    consulta_id = Column(
-        Integer,
-        ForeignKey("consultas.id"),
-        nullable=False
-    )
+    activo = Column(Boolean, default=True, nullable=False)
+
+    consulta_id = Column(Integer, ForeignKey("consultas.id"), nullable=False)
 
     consulta = relationship(
         "Consulta",
@@ -191,7 +188,4 @@ class Tratamiento(Base):
     )
 
     def __repr__(self):
-        return (
-            f"<Tratamiento(id={self.id}, nombre='{self.nombre}', "
-            f"dosis='{self.dosis}')>"
-        )
+        return f"<Tratamiento(id={self.id}, nombre='{self.nombre}', activo={self.activo})>"
