@@ -21,7 +21,6 @@ def crear_paciente(
 ) -> Paciente:
     """
     Crea una nueva mascota (paciente).
-    No hace commit.
     """
 
     paciente = Paciente(
