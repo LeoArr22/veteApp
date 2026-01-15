@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from sqlalchemy import (
     Column,
@@ -172,11 +172,15 @@ class Tratamiento(Base):
     __tablename__ = "tratamientos"
 
     id = Column(Integer, primary_key=True)
+
     nombre = Column(String, nullable=False)
     dosis = Column(String, nullable=False)
     frecuencia = Column(String)
     duracion = Column(String)
     observaciones = Column(Text)
+
+    fecha_inicio = Column(Date, nullable=False, default=date.today)
+    fecha_fin = Column(Date)
 
     activo = Column(Boolean, default=True, nullable=False)
 
@@ -188,4 +192,8 @@ class Tratamiento(Base):
     )
 
     def __repr__(self):
-        return f"<Tratamiento(id={self.id}, nombre='{self.nombre}', activo={self.activo})>"
+        return (
+            f"<Tratamiento(id={self.id}, nombre='{self.nombre}', "
+            f"inicio={self.fecha_inicio}, fin={self.fecha_fin}, activo={self.activo})>"
+        )
+
