@@ -3,7 +3,6 @@
 from sqlalchemy.orm import Session
 from database.models import Consulta
 
-
 # ---------------------------------------------------------
 # CREAR CONSULTA
 # ---------------------------------------------------------
@@ -13,14 +12,14 @@ def crear_consulta(
     paciente_id: int,
     veterinario_id: int,
     motivo: str,
-    diagnostico: str | None = None,
+    diagnostico: str,
     observaciones: str | None = None
 ) -> Consulta:
     """
-    Crea una nueva consulta.
+    Registra una nueva consulta médica en estado activo.
+    El uso de '*' garantiza que no se confundan los IDs de paciente y vet.
     """
-
-    consulta = Consulta(
+    nueva_consulta = Consulta(
         paciente_id=paciente_id,
         veterinario_id=veterinario_id,
         motivo=motivo,
@@ -28,89 +27,53 @@ def crear_consulta(
         observaciones=observaciones,
         activo=True
     )
-
-    db.add(consulta)
-    return consulta
-
-
-# ---------------------------------------------------------
-# OBTENER CONSULTA POR ID
-# ---------------------------------------------------------
-def obtener_consulta_por_id(
-    db: Session,
-    consulta_id: int
-) -> Consulta | None:
-    """
-    Devuelve una consulta activa por ID o None si no existe.
-    """
-
-    return (
-        db.query(Consulta)
-        .filter(
-            Consulta.id == consulta_id,
-            Consulta.activo.is_(True)
-        )
-        .one_or_none()
-    )
+    db.add(nueva_consulta)
+    return nueva_consulta
 
 
 # ---------------------------------------------------------
-# LISTAR CONSULTAS DE UN PACIENTE
+# OBTENER CONSULTA
 # ---------------------------------------------------------
-def listar_consultas_por_paciente(
-    db: Session,
-    paciente_id: int
-) -> list[Consulta]:
+def obtener_consulta_por_id(db: Session, consulta_id: int) -> Consulta | None:
     """
-    Devuelve todas las consultas activas de un paciente,
-    ordenadas por fecha.
+    Busca una consulta activa por su ID.
     """
-
-    return (
-        db.query(Consulta)
-        .filter(
-            Consulta.paciente_id == paciente_id,
-            Consulta.activo.is_(True)
-        )
-        .order_by(Consulta.fecha)
-        .all()
-    )
+    return db.query(Consulta).filter(
+        Consulta.id == consulta_id, 
+        Consulta.activo.is_(True)
+    ).one_or_none()
 
 
 # ---------------------------------------------------------
-# ACTUALIZAR CONSULTA
+# OBTENER CONSULTA COMPLETA
 # ---------------------------------------------------------
-def actualizar_consulta(
-    db: Session,
-    consulta: Consulta,
-    *,
-    motivo: str | None = None,
-    diagnostico: str | None = None,
-    observaciones: str | None = None
-) -> Consulta:
+def obtener_consulta_completa(db: Session, consulta_id: int) -> Consulta | None:
     """
-    Actualiza los datos clínicos de una consulta existente.
+    Busca una consulta por ID sin importar si está anulada.
     """
-
-    if motivo is not None:
-        consulta.motivo = motivo
-    if diagnostico is not None:
-        consulta.diagnostico = diagnostico
-    if observaciones is not None:
-        consulta.observaciones = observaciones
-
-    return consulta
+    return db.query(Consulta).filter(Consulta.id == consulta_id).one_or_none()
 
 
 # ---------------------------------------------------------
-# SOFT DELETE DE CONSULTA
+# LISTAR CONSULTAS POR PACIENTE
 # ---------------------------------------------------------
-def desactivar_consulta(
-    db: Session,
-    consulta: Consulta
-) -> None:
+def listar_consultas_paciente(db: Session, paciente_id: int, solo_activas: bool = True) -> list[Consulta]:
     """
-    Marca una consulta como inactiva (soft delete).
+    Retorna el historial médico de un paciente, ordenado por fecha descendente.
     """
+    query = db.query(Consulta).filter(Consulta.paciente_id == paciente_id)
+    
+    if solo_activas:
+        query = query.filter(Consulta.activo.is_(True))
+        
+    return query.order_by(Consulta.fecha.desc()).all()
 
-    consulta.activo = False
+
+# ---------------------------------------------------------
+# PERSISTENCIA: CAMBIAR ESTADO
+# ---------------------------------------------------------
+def cambiar_estado_consulta(db: Session, consulta: Consulta, *, estado: bool):
+    """
+    Permite anular o reactivar una consulta (borrado lógico).
+    """
+    consulta.activo = estado

@@ -73,16 +73,19 @@ def listar_archivos_por_consulta(
         .all()
     )
 
+# ---------------------------------------------------------
+# LISTAR ARCHIVOS DE UNA CONSULTA INCLUYENDO INACTIVOS
+# ---------------------------------------------------------
+
+def obtener_archivo_completo(db: Session, archivo_id: int):
+    """ESTA ES LA QUE FALTABA: Busca incluso si está desactivado."""
+    return db.query(ArchivoClinico).filter(ArchivoClinico.id == archivo_id).first()
 
 # ---------------------------------------------------------
 # SOFT DELETE DE ARCHIVO CLÍNICO
 # ---------------------------------------------------------
-def desactivar_archivo_clinico(
-    db: Session,
-    archivo: ArchivoClinico
-) -> None:
-    """
-    Marca un archivo clínico como inactivo (soft delete).
-    """
-
-    archivo.activo = False
+def cambiar_estado_archivo(db: Session, archivo: ArchivoClinico, estado: bool):
+    """Para anular o reactivar."""
+    archivo.activo = estado
+    db.flush()
+    return archivo

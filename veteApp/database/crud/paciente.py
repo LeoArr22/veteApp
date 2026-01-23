@@ -3,9 +3,6 @@
 from sqlalchemy.orm import Session
 from database.models import Paciente
 
-# -> dato
-# indica el tipo de retorno esperado (Type Hint)
-
 # ---------------------------------------------------------
 # CREAR PACIENTE (MASCOTA)
 # ---------------------------------------------------------
@@ -20,9 +17,8 @@ def crear_paciente(
     fecha_nacimiento=None
 ) -> Paciente:
     """
-    Crea una nueva mascota (paciente).
+    Crea una nueva mascota (paciente) en estado activo.
     """
-
     paciente = Paciente(
         nombre=nombre,
         especie=especie,
@@ -32,7 +28,6 @@ def crear_paciente(
         dueno_id=dueno_id,
         activo=True
     )
-
     db.add(paciente)
     return paciente
 
@@ -40,123 +35,72 @@ def crear_paciente(
 # ---------------------------------------------------------
 # OBTENER PACIENTE POR ID
 # ---------------------------------------------------------
-def obtener_paciente_por_id(
-    db: Session,
-    paciente_id: int
-) -> Paciente | None:
+def obtener_paciente_por_id(db: Session, paciente_id: int) -> Paciente | None:
     """
-    Devuelve un paciente activo por ID o None si no existe.
+    Busca un paciente activo por su ID.
     """
-
     return (
         db.query(Paciente)
-        .filter(
-            Paciente.id == paciente_id,
-            Paciente.activo.is_(True)
-        )
+        .filter(Paciente.id == paciente_id, Paciente.activo.is_(True))
         .one_or_none()
     )
 
 
 # ---------------------------------------------------------
-# LISTAR PACIENTES ACTIVOS
+# OBTENER PACIENTE COMPLETO (INCLUYE INACTIVOS)
 # ---------------------------------------------------------
-def listar_pacientes(
-    db: Session
-) -> list[Paciente]:
+def obtener_paciente_completo(db: Session, paciente_id: int) -> Paciente | None:
     """
-    Devuelve todos los pacientes activos ordenados por nombre.
+    Busca un paciente por ID sin importar su estado. 
+    Útil para reactivación o auditoría.
     """
-
-    return (
-        db.query(Paciente)
-        .filter(Paciente.activo.is_(True))
-        .order_by(Paciente.nombre)
-        .all()
-    )
+    return db.query(Paciente).filter(Paciente.id == paciente_id).one_or_none()
 
 
 # ---------------------------------------------------------
-# LISTAR PACIENTES POR DUEÑO
+# LISTAR PACIENTES (POR DUEÑO O GENERAL)
 # ---------------------------------------------------------
-def listar_pacientes_por_dueno(
-    db: Session,
-    dueno_id: int
-) -> list[Paciente]:
+def listar_pacientes_por_dueno(db: Session, dueno_id: int, solo_activos: bool = True) -> list[Paciente]:
     """
-    Devuelve todos los pacientes activos de un dueño.
+    Retorna las mascotas de un dueño, ordenadas por nombre.
     """
-
-    return (
-        db.query(Paciente)
-        .filter(
-            Paciente.dueno_id == dueno_id,
-            Paciente.activo.is_(True)
-        )
-        .order_by(Paciente.nombre)
-        .all()
-    )
+    query = db.query(Paciente).filter(Paciente.dueno_id == dueno_id)
+    if solo_activos:
+        query = query.filter(Paciente.activo.is_(True))
+    
+    return query.order_by(Paciente.nombre).all()
 
 
 # ---------------------------------------------------------
 # ACTUALIZAR PACIENTE
 # ---------------------------------------------------------
-def actualizar_paciente(
-    db: Session,
-    paciente: Paciente,
-    *,
-    nombre: str | None = None,
-    especie: str | None = None,
-    raza: str | None = None,
-    sexo: str | None = None,
-    fecha_nacimiento=None
-) -> Paciente:
+def actualizar_paciente(db: Session, paciente: Paciente, **kwargs) -> Paciente:
     """
-    Actualiza los datos de una mascota existente.
-    Recibe la entidad ya cargada.
+    Actualiza datos mediante keywords (nombre, raza, peso, etc).
     """
-
-    if nombre is not None:
-        paciente.nombre = nombre
-    if especie is not None:
-        paciente.especie = especie
-    if raza is not None:
-        paciente.raza = raza
-    if sexo is not None:
-        paciente.sexo = sexo
-    if fecha_nacimiento is not None:
-        paciente.fecha_nacimiento = fecha_nacimiento
-
+    for key, value in kwargs.items():
+        if value is not None:
+            setattr(paciente, key, value)
     return paciente
 
 
 # ---------------------------------------------------------
-# CAMBIAR DUEÑO DE PACIENTE (CASO ESPECIAL)
+# PERSISTENCIA: CAMBIAR ESTADO
 # ---------------------------------------------------------
-def cambiar_dueno_paciente(
-    db: Session,
-    paciente: Paciente,
-    *,
-    nuevo_dueno_id: int
-) -> Paciente:
+def cambiar_estado_paciente(db: Session, paciente: Paciente, *, estado: bool):
     """
-    Reasigna una mascota a otro dueño.
-    Caso excepcional y controlado.
+    Maneja el alta/baja lógica del paciente. 
+    Se usa para desactivar o reactivar.
     """
+    paciente.activo = estado
 
+
+# ---------------------------------------------------------
+# CAMBIAR DUEÑO (CASO ESPECIAL)
+# ---------------------------------------------------------
+def cambiar_dueno_paciente(db: Session, paciente: Paciente, *, nuevo_dueno_id: int) -> Paciente:
+    """
+    Reasigna la mascota a otro dueño (ej. adopción o venta).
+    """
     paciente.dueno_id = nuevo_dueno_id
     return paciente
-
-
-# ---------------------------------------------------------
-# SOFT DELETE DE PACIENTE
-# ---------------------------------------------------------
-def desactivar_paciente(
-    db: Session,
-    paciente: Paciente
-) -> None:
-    """
-    Marca un paciente como inactivo (soft delete).
-    """
-
-    paciente.activo = False

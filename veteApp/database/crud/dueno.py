@@ -3,12 +3,12 @@
 from sqlalchemy.orm import Session
 from database.models import Dueno
 
-
 # ---------------------------------------------------------
 # CREAR DUEÑO
 # ---------------------------------------------------------
 def crear_dueno(
     db: Session,
+    *,
     dni: str,
     nombre: str,
     telefono: str | None = None,
@@ -16,9 +16,9 @@ def crear_dueno(
     direccion: str | None = None
 ) -> Dueno:
     """
-    Crea un nuevo dueño.
+    Crea un nuevo dueño en estado activo.
+    El uso de '*' obliga a pasar los datos como pares clave-valor.
     """
-
     dueno = Dueno(
         dni=dni,
         nombre=nombre,
@@ -27,128 +27,75 @@ def crear_dueno(
         direccion=direccion,
         activo=True
     )
-
     db.add(dueno)
     return dueno
 
 
 # ---------------------------------------------------------
-# OBTENER DUEÑO POR ID
+# OBTENER DUEÑO (ACTIVO)
 # ---------------------------------------------------------
-def obtener_dueno_por_id(
-    db: Session,
-    dueno_id: int
-) -> Dueno | None: # -> Dueno | None indica el tipo de retorno esperado (Type Hint)
+def obtener_dueno_por_id(db: Session, dueno_id: int) -> Dueno | None:
     """
-    Devuelve un dueño por ID o None si no existe.
+    Busca un dueño por ID que esté activo en el sistema.
     """
-
-    return (
-        db.query(Dueno)
-        .filter(
-            Dueno.id == dueno_id,
-            Dueno.activo.is_(True)
-        )
-        .one_or_none()
-    )
+    return db.query(Dueno).filter(
+        Dueno.id == dueno_id, 
+        Dueno.activo.is_(True)
+    ).one_or_none()
 
 
 # ---------------------------------------------------------
-# OBTENER DUEÑO POR DNI
+# BUSCAR DUEÑO POR DNI
 # ---------------------------------------------------------
-def obtener_dueno_por_dni(
-    db: Session,
-    dni: str
-) -> Dueno | None:
+def obtener_dueno_por_dni(db: Session, dni: str) -> Dueno | None:
     """
-    Devuelve un dueño activo por DNI o None si no existe.
+    Busca un dueño por su número de DNI para validaciones de unicidad.
     """
-
-    return (
-        db.query(Dueno)
-        .filter(
-            Dueno.dni == dni,
-            Dueno.activo.is_(True)
-        )
-        .one_or_none()
-    )
+    return db.query(Dueno).filter(Dueno.dni == dni).one_or_none()
 
 
 # ---------------------------------------------------------
-# LISTAR DUEÑOS ACTIVOS
+# OBTENER DUEÑO COMPLETO (INCLUYE INACTIVOS)
 # ---------------------------------------------------------
-def listar_duenos(
-    db: Session
-) -> list[Dueno]: # -> list[Dueno] indica el tipo de retorno esperado (Type Hint)
+def obtener_dueno_por_id_completo(db: Session, dueno_id: int) -> Dueno | None:
     """
-    Devuelve todos los dueños activos ordenados por nombre.
+    Busca un dueño por ID sin filtrar por estado (historial completo).
     """
-
-    return (
-        db.query(Dueno)
-        .filter(Dueno.activo.is_(True))
-        .order_by(Dueno.nombre)
-        .all()
-    )
+    return db.query(Dueno).filter(Dueno.id == dueno_id).one_or_none()
 
 
 # ---------------------------------------------------------
-# ACTUALIZAR DUEÑO
+# LISTAR DUEÑOS
 # ---------------------------------------------------------
-def actualizar_dueno(
-    db: Session,
-    dueno: Dueno,
-    *, # * → a partir de aca los parámetros son keyword-only
-    nombre: str | None = None,
-    telefono: str | None = None,
-    email: str | None = None,
-    direccion: str | None = None
-) -> Dueno:  # -> Dueno indica el tipo de retorno esperado (Type Hint)
-
+def listar_duenos_activos(db: Session) -> list[Dueno]:
     """
-    Actualiza los datos de un dueño existente.
-    Recibe la entidad ya cargada.
+    Retorna todos los dueños con estado activo.
     """
+    return db.query(Dueno).filter(Dueno.activo.is_(True)).all()
 
-    if nombre is not None:
-        dueno.nombre = nombre
-    if telefono is not None:
-        dueno.telefono = telefono
-    if email is not None:
-        dueno.email = email
-    if direccion is not None:
-        dueno.direccion = direccion
 
+def listar_todos_los_duenos(db: Session) -> list[Dueno]:
+    """
+    Retorna la totalidad de dueños registrados (auditoría).
+    """
+    return db.query(Dueno).all()
+
+
+# ---------------------------------------------------------
+# PERSISTENCIA: CAMBIAR ESTADO Y ACTUALIZAR
+# ---------------------------------------------------------
+def cambiar_estado_dueno(db: Session, dueno: Dueno, *, estado: bool):
+    """
+    Modifica el atributo activo del modelo.
+    """
+    dueno.activo = estado
+
+
+def actualizar_dueno(db: Session, dueno: Dueno, **kwargs) -> Dueno:
+    """
+    Aplica cambios parciales a un registro de dueño mediante keywords.
+    """
+    for key, value in kwargs.items():
+        if value is not None:
+            setattr(dueno, key, value)
     return dueno
-
-
-
-# ---------------------------------------------------------
-# ACTUALIZAR DNI DE DUEÑO (CASO ESPECIAL)
-# ---------------------------------------------------------
-def actualizar_dni_dueno(
-    db: Session,
-    dueno: Dueno,
-    *,
-    nuevo_dni: str
-) -> Dueno:
-    """
-    Corrige el DNI de un dueño.
-    Caso de uso excepcional.
-    """
-
-    dueno.dni = nuevo_dni
-    return dueno
-
-# ---------------------------------------------------------
-# SOFT DELETE DE DUEÑO
-# ---------------------------------------------------------
-def desactivar_dueno(
-    db: Session,
-    dueno: Dueno
-) -> None: # -> None indica el tipo de retorno esperado (Type Hint)
-    """
-    Marca un dueño como inactivo (soft delete).
-    """
-
-    dueno.activo = False

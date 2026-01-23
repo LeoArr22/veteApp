@@ -3,7 +3,6 @@
 from sqlalchemy.orm import Session
 from database.models import Veterinario
 
-
 # ---------------------------------------------------------
 # CREAR VETERINARIO
 # ---------------------------------------------------------
@@ -11,130 +10,90 @@ def crear_veterinario(
     db: Session,
     *,
     nombre: str,
-    matricula: str
+    matricula: str,
+    especialidad: str | None = None,
+    telefono: str | None = None
 ) -> Veterinario:
     """
-    Crea un nuevo veterinario.
-    No hace commit.
+    Registra un nuevo profesional en la base de datos.
+    El uso de '*' obliga a pasar los argumentos por nombre.
     """
-
     veterinario = Veterinario(
         nombre=nombre,
         matricula=matricula,
+        especialidad=especialidad,
+        telefono=telefono,
         activo=True
     )
-
     db.add(veterinario)
     return veterinario
 
 
 # ---------------------------------------------------------
-# OBTENER VETERINARIO POR ID
+# OBTENER VETERINARIO (ACTIVO)
 # ---------------------------------------------------------
-def obtener_veterinario_por_id(
-    db: Session,
-    veterinario_id: int
-) -> Veterinario | None:
+def obtener_veterinario_por_id(db: Session, veterinario_id: int) -> Veterinario | None:
     """
-    Devuelve un veterinario activo por ID o None si no existe.
+    Busca un veterinario activo por su ID.
     """
-
-    return (
-        db.query(Veterinario)
-        .filter(
-            Veterinario.id == veterinario_id,
-            Veterinario.activo.is_(True)
-        )
-        .one_or_none()
-    )
+    return db.query(Veterinario).filter(
+        Veterinario.id == veterinario_id, 
+        Veterinario.activo.is_(True)
+    ).one_or_none()
 
 
 # ---------------------------------------------------------
-# OBTENER VETERINARIO POR MATRÍCULA
+# BUSCAR POR MATRÍCULA
 # ---------------------------------------------------------
-def obtener_veterinario_por_matricula(
-    db: Session,
-    matricula: str
-) -> Veterinario | None:
+def obtener_veterinario_por_matricula(db: Session, matricula: str) -> Veterinario | None:
     """
-    Devuelve un veterinario activo por matrícula o None si no existe.
+    Busca un veterinario por su matrícula profesional.
     """
-
-    return (
-        db.query(Veterinario)
-        .filter(
-            Veterinario.matricula == matricula,
-            Veterinario.activo.is_(True)
-        )
-        .one_or_none()
-    )
+    return db.query(Veterinario).filter(Veterinario.matricula == matricula).one_or_none()
 
 
 # ---------------------------------------------------------
-# LISTAR VETERINARIOS ACTIVOS
+# OBTENER VETERINARIO COMPLETO (INCLUYE INACTIVOS)
 # ---------------------------------------------------------
-def listar_veterinarios(
-    db: Session
-) -> list[Veterinario]:
+def obtener_veterinario_completo(db: Session, veterinario_id: int) -> Veterinario | None:
     """
-    Devuelve todos los veterinarios activos ordenados por nombre.
+    Busca un veterinario por ID sin filtrar por estado (historial).
     """
-
-    return (
-        db.query(Veterinario)
-        .filter(Veterinario.activo.is_(True))
-        .order_by(Veterinario.nombre)
-        .all()
-    )
+    return db.query(Veterinario).filter(Veterinario.id == veterinario_id).one_or_none()
 
 
 # ---------------------------------------------------------
-# ACTUALIZAR VETERINARIO
+# LISTAR VETERINARIOS
 # ---------------------------------------------------------
-def actualizar_veterinario(
-    db: Session,
-    veterinario: Veterinario,
-    *,
-    nombre: str | None = None
-) -> Veterinario:
+def listar_veterinarios_activos(db: Session) -> list[Veterinario]:
     """
-    Actualiza los datos de un veterinario existente.
-    Recibe la entidad ya cargada.
+    Retorna la lista de profesionales que trabajan actualmente.
     """
+    return db.query(Veterinario).filter(Veterinario.activo.is_(True)).all()
 
-    if nombre is not None:
-        veterinario.nombre = nombre
 
+def listar_todos_los_veterinarios(db: Session) -> list[Veterinario]:
+    """
+    Retorna el padrón completo de veterinarios (activos y bajas).
+    """
+    return db.query(Veterinario).all()
+
+
+# ---------------------------------------------------------
+# PERSISTENCIA: CAMBIAR ESTADO Y ACTUALIZAR
+# ---------------------------------------------------------
+def cambiar_estado_veterinario(db: Session, veterinario: Veterinario, *, estado: bool):
+    """
+    Modifica el atributo activo del modelo.
+    """
+    veterinario.activo = estado
+
+
+def actualizar_veterinario(db: Session, veterinario: Veterinario, **kwargs) -> Veterinario:
+    """
+    Actualiza los campos permitidos del profesional.
+    """
+    for key, value in kwargs.items():
+        if value is not None:
+            setattr(veterinario, key, value)
     return veterinario
-
-
-# ---------------------------------------------------------
-# ACTUALIZAR MATRÍCULA (CASO ESPECIAL)
-# ---------------------------------------------------------
-def actualizar_matricula_veterinario(
-    db: Session,
-    veterinario: Veterinario,
-    *,
-    nueva_matricula: str
-) -> Veterinario:
-    """
-    Corrige la matrícula de un veterinario.
-    Caso de uso excepcional.
-    """
-
-    veterinario.matricula = nueva_matricula
-    return veterinario
-
-
-# ---------------------------------------------------------
-# SOFT DELETE DE VETERINARIO
-# ---------------------------------------------------------
-def desactivar_veterinario(
-    db: Session,
-    veterinario: Veterinario
-) -> None:
-    """
-    Marca un veterinario como inactivo (soft delete).
-    """
-
-    veterinario.activo = False

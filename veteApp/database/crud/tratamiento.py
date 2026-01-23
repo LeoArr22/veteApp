@@ -2,9 +2,7 @@
 
 from datetime import date
 from sqlalchemy.orm import Session
-
 from database.models import Tratamiento
-
 
 # ---------------------------------------------------------
 # CREAR TRATAMIENTO
@@ -22,9 +20,8 @@ def crear_tratamiento(
     consulta_id: int
 ) -> Tratamiento:
     """
-    Crea un nuevo tratamiento.
+    Registra un nuevo tratamiento vinculado a una consulta.
     """
-
     tratamiento = Tratamiento(
         nombre=nombre,
         dosis=dosis,
@@ -36,7 +33,6 @@ def crear_tratamiento(
         consulta_id=consulta_id,
         activo=True
     )
-
     db.add(tratamiento)
     return tratamiento
 
@@ -44,128 +40,56 @@ def crear_tratamiento(
 # ---------------------------------------------------------
 # OBTENER TRATAMIENTO POR ID
 # ---------------------------------------------------------
-def obtener_tratamiento_por_id(
-    db: Session,
-    tratamiento_id: int
-) -> Tratamiento | None:
+def obtener_tratamiento_por_id(db: Session, tratamiento_id: int) -> Tratamiento | None:
     """
-    Devuelve un tratamiento activo por ID o None si no existe.
+    Busca un tratamiento activo por su ID.
     """
-
     return (
         db.query(Tratamiento)
-        .filter(
-            Tratamiento.id == tratamiento_id,
-            Tratamiento.activo.is_(True)
-        )
+        .filter(Tratamiento.id == tratamiento_id, Tratamiento.activo.is_(True))
         .one_or_none()
     )
 
 
-# ---------------------------------------------------------
-# LISTAR TRATAMIENTOS POR CONSULTA
-# ---------------------------------------------------------
-def listar_tratamientos_por_consulta(
-    db: Session,
-    consulta_id: int
-) -> list[Tratamiento]:
+def obtener_tratamiento_completo(db: Session, tratamiento_id: int) -> Tratamiento | None:
     """
-    Devuelve todos los tratamientos activos de una consulta.
+    Busca un tratamiento sin filtrar por estado (para auditoría).
     """
+    return db.query(Tratamiento).filter(Tratamiento.id == tratamiento_id).one_or_none()
 
+
+# ---------------------------------------------------------
+# LISTAR TRATAMIENTOS
+# ---------------------------------------------------------
+def listar_tratamientos_por_consulta(db: Session, consulta_id: int) -> list[Tratamiento]:
+    """
+    Retorna todos los tratamientos de una consulta específica.
+    """
     return (
         db.query(Tratamiento)
-        .filter(
-            Tratamiento.consulta_id == consulta_id,
-            Tratamiento.activo.is_(True)
-        )
+        .filter(Tratamiento.consulta_id == consulta_id, Tratamiento.activo.is_(True))
         .order_by(Tratamiento.fecha_inicio)
         .all()
     )
 
 
 # ---------------------------------------------------------
-# LISTAR TRATAMIENTOS ACTIVOS
+# FINALIZAR TRATAMIENTO (ACTUALIZACIÓN DE CICLO)
 # ---------------------------------------------------------
-def listar_tratamientos_activos(
-    db: Session
-) -> list[Tratamiento]:
+def finalizar_tratamiento(db: Session, tratamiento: Tratamiento, *, fecha_fin: date) -> Tratamiento:
     """
-    Devuelve todos los tratamientos activos.
+    Establece la fecha de finalización de un tratamiento.
+    Este es el único cambio permitido sobre un tratamiento existente.
     """
-
-    return (
-        db.query(Tratamiento)
-        .filter(Tratamiento.activo.is_(True))
-        .order_by(Tratamiento.fecha_inicio)
-        .all()
-    )
-
-
-# ---------------------------------------------------------
-# ACTUALIZAR TRATAMIENTO
-# ---------------------------------------------------------
-def actualizar_tratamiento(
-    db: Session,
-    tratamiento: Tratamiento,
-    *,
-    nombre: str | None = None,
-    dosis: str | None = None,
-    frecuencia: str | None = None,
-    duracion: str | None = None,
-    observaciones: str | None = None,
-    fecha_inicio: date | None = None,
-    fecha_fin: date | None = None
-) -> Tratamiento:
-    """
-    Actualiza los datos de un tratamiento existente.
-    Recibe la entidad ya cargada.
-    """
-
-    if nombre is not None:
-        tratamiento.nombre = nombre
-    if dosis is not None:
-        tratamiento.dosis = dosis
-    if frecuencia is not None:
-        tratamiento.frecuencia = frecuencia
-    if duracion is not None:
-        tratamiento.duracion = duracion
-    if observaciones is not None:
-        tratamiento.observaciones = observaciones
-    if fecha_inicio is not None:
-        tratamiento.fecha_inicio = fecha_inicio
-    if fecha_fin is not None:
-        tratamiento.fecha_fin = fecha_fin
-
-    return tratamiento
-
-
-# ---------------------------------------------------------
-# FINALIZAR TRATAMIENTO (SET FECHA FIN)
-# ---------------------------------------------------------
-def finalizar_tratamiento(
-    db: Session,
-    tratamiento: Tratamiento,
-    *,
-    fecha_fin: date
-) -> Tratamiento:
-    """
-    Marca un tratamiento como finalizado estableciendo fecha_fin.
-    """
-
     tratamiento.fecha_fin = fecha_fin
     return tratamiento
 
 
 # ---------------------------------------------------------
-# SOFT DELETE DE TRATAMIENTO
+# PERSISTENCIA: CAMBIAR ESTADO
 # ---------------------------------------------------------
-def desactivar_tratamiento(
-    db: Session,
-    tratamiento: Tratamiento
-) -> None:
+def cambiar_estado_tratamiento(db: Session, tratamiento: Tratamiento, *, estado: bool):
     """
-    Marca un tratamiento como inactivo (soft delete).
+    Anula o reactiva un tratamiento (borrado lógico).
     """
-
-    tratamiento.activo = False
+    tratamiento.activo = estado
