@@ -56,7 +56,7 @@ def obtener_tratamiento_service(db: Session, tratamiento_id: int) -> Tratamiento
     """
     Recupera un tratamiento activo por ID.
     """
-    tratamiento = obtener_treatment_por_id(db, tratamiento_id)
+    tratamiento = obtener_tratamiento_por_id(db, tratamiento_id)
     if not tratamiento:
         raise TratamientoNotFoundError(f"Tratamiento con ID {tratamiento_id} no encontrado")
     
