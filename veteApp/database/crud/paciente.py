@@ -29,6 +29,10 @@ def crear_paciente(
         activo=True
     )
     db.add(paciente)
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(paciente)
     return paciente
 
 
@@ -81,6 +85,10 @@ def actualizar_paciente(db: Session, paciente: Paciente, **kwargs) -> Paciente:
     for key, value in kwargs.items():
         if value is not None:
             setattr(paciente, key, value)
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(paciente)
     return paciente
 
 
@@ -93,6 +101,11 @@ def cambiar_estado_paciente(db: Session, paciente: Paciente, *, estado: bool):
     Se usa para desactivar o reactivar.
     """
     paciente.activo = estado
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(estado)
+    return paciente
 
 
 # ---------------------------------------------------------
@@ -103,4 +116,8 @@ def cambiar_dueno_paciente(db: Session, paciente: Paciente, *, nuevo_dueno_id: i
     Reasigna la mascota a otro dueño (ej. adopción o venta).
     """
     paciente.dueno_id = nuevo_dueno_id
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(paciente)
     return paciente

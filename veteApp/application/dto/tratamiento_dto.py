@@ -1,7 +1,7 @@
 # application/dto/tratamiento_dto.py
 
 from datetime import date
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # =========================================================
@@ -14,7 +14,8 @@ class TratamientoCreateDTO(BaseModel):
     frecuencia: str | None = Field(None, max_length=100)
     duracion: str | None = Field(None, max_length=100)
     observaciones: str | None = None
-    fecha_inicio: date
+    fecha_inicio: date | None = None
+    fecha_fin: date | None = None
     consulta_id: int
 
 
@@ -37,9 +38,12 @@ class TratamientoReadDTO(BaseModel):
     fecha_fin: date | None
     consulta_id: int
     activo: bool
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class TratamientoListDTO(BaseModel):
     id: int
     nombre: str
     activo: bool
+    model_config = ConfigDict(from_attributes=True)

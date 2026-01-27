@@ -1,7 +1,7 @@
 # application/dto/consulta_dto.py
 
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # =========================================================
@@ -34,9 +34,10 @@ class ConsultaReadDTO(BaseModel):
     paciente_id: int
     veterinario_id: int
     activo: bool
-
+    model_config = ConfigDict(from_attributes=True)
 
 class ConsultaListDTO(BaseModel):
     id: int
     fecha: datetime
     motivo: str
+    model_config = ConfigDict(from_attributes=True)

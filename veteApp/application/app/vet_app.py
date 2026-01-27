@@ -93,6 +93,8 @@ class VeterinariaApp:
             self.db.rollback()
             raise e
 
+    
+
     # =========================================================
     # MÓDULO: VETERINARIOS
     # =========================================================
@@ -141,7 +143,7 @@ class VeterinariaApp:
     # =========================================================
     # MÓDULO: TRATAMIENTOS
     # =========================================================
-    def agregar_tratamiento(self, dto):
+    def registrar_tratamiento(self, dto):
         try:
             res = tratamiento_service.agregar_tratamiento_service(self.db, dto)
             self.db.commit()

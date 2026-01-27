@@ -28,6 +28,10 @@ def crear_archivo_clinico(
     )
 
     db.add(archivo)
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(archivo)
     return archivo
 
 
@@ -56,29 +60,26 @@ def obtener_archivo_por_id(
 # LISTAR ARCHIVOS DE UNA CONSULTA
 # ---------------------------------------------------------
 def listar_archivos_por_consulta(
-    db: Session,
-    consulta_id: int
+    db: Session, 
+    consulta_id: int, 
+    solo_activos: bool = True  # <--- AGREGAMOS ESTE PARÁMETRO
 ) -> list[ArchivoClinico]:
     """
-    Devuelve todos los archivos activos de una consulta.
+    Devuelve los archivos de una consulta, permitiendo filtrar por estado.
     """
-
-    return (
-        db.query(ArchivoClinico)
-        .filter(
-            ArchivoClinico.consulta_id == consulta_id,
-            ArchivoClinico.activo.is_(True)
-        )
-        .order_by(ArchivoClinico.fecha_subida)
-        .all()
-    )
+    query = db.query(ArchivoClinico).filter(ArchivoClinico.consulta_id == consulta_id)
+    
+    if solo_activos:
+        query = query.filter(ArchivoClinico.activo.is_(True))
+    
+    return query.order_by(ArchivoClinico.fecha_subida).all()
 
 # ---------------------------------------------------------
 # LISTAR ARCHIVOS DE UNA CONSULTA INCLUYENDO INACTIVOS
 # ---------------------------------------------------------
 
-def obtener_archivo_completo(db: Session, archivo_id: int):
-    """ESTA ES LA QUE FALTABA: Busca incluso si está desactivado."""
+def obtener_archivo_completo(db: Session, archivo_id: int) -> ArchivoClinico | None:
+    """Busca el archivo sin importar si está activo o no."""
     return db.query(ArchivoClinico).filter(ArchivoClinico.id == archivo_id).first()
 
 # ---------------------------------------------------------
@@ -87,5 +88,8 @@ def obtener_archivo_completo(db: Session, archivo_id: int):
 def cambiar_estado_archivo(db: Session, archivo: ArchivoClinico, estado: bool):
     """Para anular o reactivar."""
     archivo.activo = estado
+    # Sincroniza con la DB para obtener el ID y validar restricciones
     db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(archivo)    
     return archivo

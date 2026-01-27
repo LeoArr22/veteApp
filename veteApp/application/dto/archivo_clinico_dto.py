@@ -1,7 +1,7 @@
 # application/dto/archivo_clinico_dto.py
 
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # =========================================================
@@ -27,9 +27,10 @@ class ArchivoClinicoReadDTO(BaseModel):
     fecha_subida: datetime
     consulta_id: int
     activo: bool
-
+    model_config = ConfigDict(from_attributes=True)
 
 class ArchivoClinicoListDTO(BaseModel):
     id: int
     nombre_original: str
     tipo: str
+    model_config = ConfigDict(from_attributes=True)

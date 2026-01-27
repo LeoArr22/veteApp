@@ -1,51 +1,29 @@
-# application/dto/veterinario_dto.py
-
-from pydantic import BaseModel, Field
-
-
-# =========================================================
-# DTOs DE ENTRADA
-# =========================================================
+from pydantic import BaseModel, Field, ConfigDict
 
 class VeterinarioCreateDTO(BaseModel):
-    """
-    Datos necesarios para crear un veterinario.
-    """
-
+    """Datos obligatorios para registrar un veterinario nuevo."""
     nombre: str = Field(..., min_length=2, max_length=100)
     matricula: str = Field(..., min_length=3, max_length=50)
-
+    especialidad: str | None = Field(None, max_length=100)
+    telefono: str | None = Field(None, max_length=20)
 
 class VeterinarioUpdateDTO(BaseModel):
     """
     Datos modificables de un veterinario.
-    Todos son opcionales.
+    Se usan tipos opcionales para permitir actualizaciones parciales.
     """
-
     nombre: str | None = Field(None, min_length=2, max_length=100)
     matricula: str | None = Field(None, min_length=3, max_length=50)
-
-
-# =========================================================
-# DTOs DE SALIDA
-# =========================================================
+    especialidad: str | None = Field(None, max_length=100)
+    telefono: str | None = Field(None, max_length=20)
 
 class VeterinarioReadDTO(BaseModel):
-    """
-    Representación completa de un veterinario.
-    """
-
+    """Datos que se devuelven a la interfaz."""
     id: int
     nombre: str
     matricula: str
+    especialidad: str | None
+    telefono: str | None
     activo: bool
 
-
-class VeterinarioListDTO(BaseModel):
-    """
-    Representación reducida para listados.
-    """
-
-    id: int
-    nombre: str
-    matricula: str
+    model_config = ConfigDict(from_attributes=True)

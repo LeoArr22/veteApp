@@ -26,6 +26,10 @@ def crear_veterinario(
         activo=True
     )
     db.add(veterinario)
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(veterinario)
     return veterinario
 
 
@@ -87,6 +91,11 @@ def cambiar_estado_veterinario(db: Session, veterinario: Veterinario, *, estado:
     Modifica el atributo activo del modelo.
     """
     veterinario.activo = estado
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(veterinario)
+    return veterinario
 
 
 def actualizar_veterinario(db: Session, veterinario: Veterinario, **kwargs) -> Veterinario:

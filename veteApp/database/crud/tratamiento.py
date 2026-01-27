@@ -34,6 +34,10 @@ def crear_tratamiento(
         activo=True
     )
     db.add(tratamiento)
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(tratamiento)
     return tratamiento
 
 
@@ -93,3 +97,8 @@ def cambiar_estado_tratamiento(db: Session, tratamiento: Tratamiento, *, estado:
     Anula o reactiva un tratamiento (borrado lógico).
     """
     tratamiento.activo = estado
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(estado)
+    return tratamiento

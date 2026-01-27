@@ -28,6 +28,10 @@ def crear_dueno(
         activo=True
     )
     db.add(dueno)
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(dueno)
     return dueno
 
 
@@ -89,6 +93,11 @@ def cambiar_estado_dueno(db: Session, dueno: Dueno, *, estado: bool):
     Modifica el atributo activo del modelo.
     """
     dueno.activo = estado
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(dueno)
+    return dueno
 
 
 def actualizar_dueno(db: Session, dueno: Dueno, **kwargs) -> Dueno:
@@ -98,4 +107,8 @@ def actualizar_dueno(db: Session, dueno: Dueno, **kwargs) -> Dueno:
     for key, value in kwargs.items():
         if value is not None:
             setattr(dueno, key, value)
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(dueno)
     return dueno

@@ -28,6 +28,10 @@ def crear_consulta(
         activo=True
     )
     db.add(nueva_consulta)
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(nueva_consulta)
     return nueva_consulta
 
 
@@ -77,3 +81,8 @@ def cambiar_estado_consulta(db: Session, consulta: Consulta, *, estado: bool):
     Permite anular o reactivar una consulta (borrado lógico).
     """
     consulta.activo = estado
+    # Sincroniza con la DB para obtener el ID y validar restricciones
+    db.flush()
+    # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
+    db.refresh(consulta)
+    return consulta

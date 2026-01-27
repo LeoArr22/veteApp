@@ -1,6 +1,6 @@
 # application/dto/dueno_dto.py
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # =========================================================
@@ -55,7 +55,7 @@ class DuenoReadDTO(BaseModel):
     email: str | None
     direccion: str | None
     activo: bool
-
+    model_config = ConfigDict(from_attributes=True)
 
 class DuenoListDTO(BaseModel):
     """
@@ -65,3 +65,4 @@ class DuenoListDTO(BaseModel):
     id: int
     dni: str
     nombre: str
+    model_config = ConfigDict(from_attributes=True)

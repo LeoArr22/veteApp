@@ -86,6 +86,8 @@ class Veterinario(Base):
     id = Column(Integer, primary_key=True)
     nombre = Column(String, nullable=False)
     matricula = Column(String, unique=True)
+    especialidad = Column(String, nullable=True) 
+    telefono = Column(String, nullable=True)
     activo = Column(Boolean, default=True, nullable=False)
 
     consultas = relationship(

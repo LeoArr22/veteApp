@@ -1,7 +1,7 @@
 # application/dto/paciente_dto.py
 
 from datetime import date
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # =========================================================
@@ -37,9 +37,11 @@ class PacienteReadDTO(BaseModel):
     fecha_nacimiento: date | None
     dueno_id: int
     activo: bool
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PacienteListDTO(BaseModel):
     id: int
     nombre: str
     especie: str
+    model_config = ConfigDict(from_attributes=True)

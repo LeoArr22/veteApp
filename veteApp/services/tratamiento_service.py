@@ -1,5 +1,5 @@
 # services/tratamiento_service.py
-
+from datetime import date
 from sqlalchemy.orm import Session
 from database.crud.tratamiento import (
     crear_tratamiento,
@@ -27,6 +27,10 @@ def agregar_tratamiento_service(db: Session, data: TratamientoCreateDTO) -> Trat
     """
     Registra un nuevo tratamiento vinculado a una consulta médica.
     """
+    # Si el veterinario eligió una fecha (ayer, por ejemplo), se usa esa.
+    # Si lo dejó vacío, el sistema asume que es hoy.
+    fecha_a_guardar = data.fecha_inicio if data.fecha_inicio is not None else date.today()
+    
     consulta = obtener_consulta_por_id(db, data.consulta_id)
     if not consulta:
         raise ConsultaNotFoundError(f"No se puede registrar: La consulta {data.consulta_id} no existe")
@@ -38,7 +42,7 @@ def agregar_tratamiento_service(db: Session, data: TratamientoCreateDTO) -> Trat
         frecuencia=data.frecuencia,
         duracion=data.duracion,
         observaciones=data.observaciones,
-        fecha_inicio=data.fecha_inicio,
+        fecha_inicio=fecha_a_guardar,
         fecha_fin=data.fecha_fin,
         consulta_id=data.consulta_id
     )
