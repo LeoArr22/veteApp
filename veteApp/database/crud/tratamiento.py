@@ -100,5 +100,5 @@ def cambiar_estado_tratamiento(db: Session, tratamiento: Tratamiento, *, estado:
     # Sincroniza con la DB para obtener el ID y validar restricciones
     db.flush()
     # Recarga el objeto para obtener valores generados por el motor (ej. fechas)
-    db.refresh(estado)
+    db.refresh(tratamiento)
     return tratamiento
