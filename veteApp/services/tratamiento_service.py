@@ -1,7 +1,7 @@
 # services/tratamiento_service.py
 from datetime import date
 from sqlalchemy.orm import Session
-from database.crud.tratamiento import (
+from veteApp.database.repository.tratamiento_repository import (
     crear_tratamiento,
     obtener_tratamiento_por_id,
     obtener_tratamiento_completo,
@@ -9,7 +9,7 @@ from database.crud.tratamiento import (
     finalizar_tratamiento,
     cambiar_estado_tratamiento
 )
-from database.crud.consulta import obtener_consulta_por_id
+from veteApp.database.repository.consulta_repository import obtener_consulta_por_id
 from application.dto.tratamiento_dto import (
     TratamientoCreateDTO,
     TratamientoReadDTO,
@@ -93,7 +93,7 @@ def finalizar_tratamiento_service(
     if not tratamiento:
         raise TratamientoNotFoundError(f"No se puede finalizar: Tratamiento {tratamiento_id} no encontrado")
 
-    # Llamamos al CRUD usando el separador * (keyword argument)
+    # Llamamos al repository usando el separador * (keyword argument)
     finalizar_tratamiento(db, tratamiento, fecha_fin=data.fecha_fin)
     return TratamientoReadDTO.model_validate(tratamiento)
 

@@ -1,4 +1,4 @@
-# database/crud/paciente.py
+# database/repository/paciente.py
 
 from sqlalchemy.orm import Session
 from database.models import Paciente

@@ -1,4 +1,4 @@
-# database/crud/veterinario.py
+# database/repository/veterinario.py
 
 from sqlalchemy.orm import Session
 from database.models import Veterinario

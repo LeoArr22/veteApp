@@ -1,7 +1,7 @@
 # services/veterinario_service.py
 
 from sqlalchemy.orm import Session
-from database.crud.veterinario import (
+from veteApp.database.repository.veterinario_repository import (
     crear_veterinario,
     obtener_veterinario_por_id,
     obtener_veterinario_por_matricula,
@@ -77,7 +77,7 @@ def actualizar_veterinario_service(db: Session, veterinario_id: int, data: Veter
     if not vet:
         raise VeterinarioNotFoundError(f"No se puede actualizar: Veterinario {veterinario_id} no existe")
     
-    # Pasamos los datos del DTO como un diccionario al CRUD
+    # Pasamos los datos del DTO como un diccionario al repository
     vet_actualizado = actualizar_veterinario(db, vet, **data.model_dump(exclude_unset=True))
     return VeterinarioReadDTO.model_validate(vet_actualizado)
 

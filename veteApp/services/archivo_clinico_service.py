@@ -1,82 +1,53 @@
-# services/archivo_clinico_service.py
-
 from sqlalchemy.orm import Session
-from database.crud.archivo_clinico import (
-    crear_archivo_clinico,
-    obtener_archivo_por_id,
-    obtener_archivo_completo,
-    listar_archivos_por_consulta,
-    cambiar_estado_archivo  # Cambiamos desactivar por la función genérica de estado
-)
-from database.crud.consulta import obtener_consulta_por_id
-from application.dto.archivo_clinico_dto import (
-    ArchivoClinicoCreateDTO,
-    ArchivoClinicoReadDTO
-)
-from exceptions.domain import (
-    ArchivoClinicoNotFoundError,
-    ConsultaNotFoundError
-)
+from database.repository.archivo_clinico_repository import ArchivoClinicoRepository
+from database.repository.consulta_repository import ConsultaRepository
+from database.models import ArchivoClinico
+from application.dto.archivo_clinico_dto import ArchivoClinicoCreateDTO, ArchivoClinicoReadDTO
+from exceptions.domain import ArchivoClinicoNotFoundError, ConsultaNotFoundError
 
-# ---------------------------------------------------------
-# SUBIR ARCHIVO CLÍNICO
-# ---------------------------------------------------------
-def subir_archivo_clinico_service(db: Session, data: ArchivoClinicoCreateDTO) -> ArchivoClinicoReadDTO:
-    """
-    Registra un documento (estudio, imagen, receta) vinculado a una consulta.
-    """
-    consulta = obtener_consulta_por_id(db, data.consulta_id)
-    if not consulta:
-        raise ConsultaNotFoundError(f"Error: La consulta {data.consulta_id} no existe o fue anulada")
+class ArchivoClinicoService:
+    def __init__(self):
+        self.archivo_repo = ArchivoClinicoRepository()
+        self.consulta_repo = ConsultaRepository()
 
-    # Usamos argumentos nombrados para evitar errores de posición
-    archivo = crear_archivo_clinico(
-        db,
-        consulta_id=data.consulta_id,
-        nombre_original=data.nombre_original,
-        ruta_archivo=data.ruta_archivo,
-        tipo=data.tipo
-    )
-    return ArchivoClinicoReadDTO.model_validate(archivo)
+    def subir_archivo(self, db: Session, data: ArchivoClinicoCreateDTO) -> ArchivoClinicoReadDTO:
+        """
+        Registra un documento vinculado a una consulta validando existencia.
+        """
+        # 1. Validación de integridad
+        if not self.consulta_repo.obtener_por_id(db, data.consulta_id):
+            raise ConsultaNotFoundError(f"La consulta {data.consulta_id} no existe o fue anulada")
 
+        # 2. Mapeo Automático (Senior Style)
+        # No importa si mañana agregas 'tamaño' o 'extension', el servicio no cambia.
+        nueva_entidad = ArchivoClinico(
+            **data.model_dump(),
+            activo=True
+        )
 
-# ---------------------------------------------------------
-# LISTAR ARCHIVOS DE UNA CONSULTA
-# ---------------------------------------------------------
-def listar_archivos_consulta_service(
-    db: Session, 
-    consulta_id: int, 
-    solo_activos: bool = True
-) -> list[ArchivoClinicoReadDTO]:
-    
-    # Verificamos la consulta (si es solo_activos=True, la consulta debe existir)
-    if solo_activos and not obtener_consulta_por_id(db, consulta_id):
-        raise ConsultaNotFoundError(f"Consulta {consulta_id} no encontrada")
-    
-    archivos = listar_archivos_por_consulta(db, consulta_id, solo_activos=solo_activos)
-    return [ArchivoClinicoReadDTO.model_validate(a) for a in archivos]
+        # 3. Persistencia y retorno
+        archivo_db = self.archivo_repo.crear(db, nueva_entidad)
+        return ArchivoClinicoReadDTO.model_validate(archivo_db)
 
-# ---------------------------------------------------------
-# ESTADO (ANULAR / REACTIVAR)
-# ---------------------------------------------------------
-def desactivar_archivo_service(db: Session, archivo_id: int) -> None:
-    """
-    Anula lógicamente un archivo y devuelve el estado actualizado.
-    """
-    archivo = obtener_archivo_por_id(db, archivo_id)
-    if not archivo:
-        raise ArchivoClinicoNotFoundError(f"Archivo ID {archivo_id} no encontrado")
+    def listar_por_consulta(self, db: Session, consulta_id: int, solo_activos: bool = True) -> list[ArchivoClinicoReadDTO]:
+        """
+        Recupera todos los documentos de una consulta específica.
+        """
+        # Verificamos la consulta primero
+        if not self.consulta_repo.obtener_por_id(db, consulta_id, solo_activa=solo_activos):
+            raise ConsultaNotFoundError(f"Consulta {consulta_id} no encontrada o inactiva")
+        
+        archivos = self.archivo_repo.listar_por_consulta(db, consulta_id, solo_activos=solo_activos)
+        return [ArchivoClinicoReadDTO.model_validate(a) for a in archivos]
 
-    archivo_editado = cambiar_estado_archivo(db, archivo, estado=False)
-    return ArchivoClinicoReadDTO.model_validate(archivo_editado)
+    def cambiar_disponibilidad(self, db: Session, archivo_id: int, estado: bool) -> ArchivoClinicoReadDTO:
+        """
+        Maneja tanto la anulación como la reactivación (DRY - Don't Repeat Yourself).
+        """
+        # Buscamos sin importar el estado actual (solo_activa=False)
+        archivo = self.archivo_repo.obtener_por_id(db, archivo_id, solo_activa=False)
+        if not archivo:
+            raise ArchivoClinicoNotFoundError(f"Archivo ID {archivo_id} no encontrado")
 
-def reactivar_archivo_service(db: Session, archivo_id: int) -> ArchivoClinicoReadDTO:
-    """
-    Restaura un archivo que fue desactivado.
-    """
-    archivo = obtener_archivo_completo(db, archivo_id)
-    if not archivo:
-        raise ArchivoClinicoNotFoundError(f"No existe registro del archivo ID {archivo_id}")
-    
-    cambiar_estado_archivo(db, archivo, estado=True)
-    return ArchivoClinicoReadDTO.model_validate(archivo)
+        archivo_editado = self.archivo_repo.cambiar_estado(db, archivo, estado=estado)
+        return ArchivoClinicoReadDTO.model_validate(archivo_editado)

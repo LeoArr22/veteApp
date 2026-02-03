@@ -1,7 +1,7 @@
 # services/paciente_service.py
 
 from sqlalchemy.orm import Session
-from database.crud.paciente import (
+from veteApp.database.repository.paciente_repository import (
     crear_paciente,
     obtener_paciente_por_id,
     obtener_paciente_completo,
@@ -10,7 +10,7 @@ from database.crud.paciente import (
     cambiar_estado_paciente,
     cambiar_dueno_paciente
 )
-from database.crud.dueno import obtener_dueno_por_id
+from veteApp.database.repository.dueno_repository import obtener_dueno_por_id
 from application.dto.paciente_dto import (
     PacienteCreateDTO,
     PacienteReadDTO,
@@ -135,7 +135,7 @@ def transferir_paciente_service(db: Session, paciente_id: int, nuevo_dueno_id: i
     if not obtener_dueno_por_id(db, nuevo_dueno_id):
         raise DuenoNotFoundError(f"El nuevo dueño con ID {nuevo_dueno_id} no existe o está inactivo")
         
-    # 3. Aplicamos el cambio mediante el CRUD
+    # 3. Aplicamos el cambio mediante el repository
     cambiar_dueno_paciente(db, paciente, nuevo_dueno_id=nuevo_dueno_id)
     
     return PacienteReadDTO.model_validate(paciente)

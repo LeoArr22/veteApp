@@ -9,16 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field
 # =========================================================
 
 class ConsultaCreateDTO(BaseModel):
-    motivo: str = Field(..., min_length=3, max_length=200)
-    diagnostico: str | None = None
-    observaciones: str | None = None
     paciente_id: int
     veterinario_id: int
-
-
-class ConsultaUpdateDTO(BaseModel):
-    diagnostico: str | None = None
+    motivo: str = Field(..., min_length=3, max_length=200)
+    diagnostico: str
     observaciones: str | None = None
+    
+
 
 
 # =========================================================
@@ -29,7 +26,7 @@ class ConsultaReadDTO(BaseModel):
     id: int
     fecha: datetime
     motivo: str
-    diagnostico: str | None
+    diagnostico: str
     observaciones: str | None
     paciente_id: int
     veterinario_id: int

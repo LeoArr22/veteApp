@@ -1,4 +1,4 @@
-# database/crud/tratamiento.py
+# database/repository/tratamiento.py
 
 from datetime import date
 from sqlalchemy.orm import Session
