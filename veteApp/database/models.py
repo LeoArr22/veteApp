@@ -87,6 +87,7 @@ class Consulta(Base):
 
     motivo: Mapped[str] = mapped_column(nullable=False)
     diagnostico: Mapped[str | None] = mapped_column(Text)
+    peso: Mapped[float | None] = mapped_column(nullable=True)
     observaciones: Mapped[str | None] = mapped_column(Text)
     activo: Mapped[bool] = mapped_column(default=True)
 

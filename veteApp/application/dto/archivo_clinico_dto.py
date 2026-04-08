@@ -19,14 +19,14 @@ class ArchivoClinicoCreateDTO(BaseModel):
 # DTOs DE SALIDA
 # =========================================================
 
-class ArchivoClinicoReadDTO(BaseModel):
+class ArchivoClinicoReadDTO(ArchivoClinicoCreateDTO):
+    """
+    Representación completa de un archivo, heredando de CreateDTO.
+    """
     id: int
-    nombre_original: str
-    ruta_archivo: str
-    tipo: str
     fecha_subida: datetime
-    consulta_id: int
     activo: bool
+
     model_config = ConfigDict(from_attributes=True)
 
 class ArchivoClinicoListDTO(BaseModel):

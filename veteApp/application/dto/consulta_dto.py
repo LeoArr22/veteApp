@@ -13,8 +13,9 @@ class ConsultaCreateDTO(BaseModel):
     veterinario_id: int
     motivo: str = Field(..., min_length=3, max_length=200)
     diagnostico: str
-    observaciones: str | None = None
-    
+    # Opcionales al final
+    peso: float | None = Field(default=None, ge=0)
+    observaciones: str | None = Field(default=None)
 
 
 
@@ -22,17 +23,11 @@ class ConsultaCreateDTO(BaseModel):
 # DTOs DE SALIDA
 # =========================================================
 
-class ConsultaReadDTO(BaseModel):
+class ConsultaReadDTO(ConsultaCreateDTO):
     id: int
     fecha: datetime
-    motivo: str
-    diagnostico: str
-    observaciones: str | None
-    paciente_id: int
-    veterinario_id: int
-    activo: bool
     model_config = ConfigDict(from_attributes=True)
-
+    
 class ConsultaListDTO(BaseModel):
     id: int
     fecha: datetime

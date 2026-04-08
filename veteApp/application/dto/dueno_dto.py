@@ -11,12 +11,12 @@ class DuenoCreateDTO(BaseModel):
     """
     Datos necesarios para crear un dueño.
     """
-
     dni: str = Field(..., min_length=7, max_length=15)
     nombre: str = Field(..., min_length=2, max_length=100)
-    telefono: str | None = Field(None, max_length=50)
-    email: str | None = Field(None, max_length=100)
-    direccion: str | None = Field(None, max_length=150)
+    # Opcionales al final
+    telefono: str | None = Field(default=None, max_length=50)
+    email: str | None = Field(default=None, max_length=100)
+    direccion: str | None = Field(default=None, max_length=150)
 
 
 class DuenoUpdateDTO(BaseModel):
@@ -43,18 +43,13 @@ class DuenoActualizarDniDTO(BaseModel):
 # DTOs DE SALIDA
 # =========================================================
 
-class DuenoReadDTO(BaseModel):
+class DuenoReadDTO(DuenoCreateDTO):
     """
-    Representación completa de un dueño.
+    Representación completa de un dueño, heredando de CreateDTO.
     """
-
     id: int
-    dni: str
-    nombre: str
-    telefono: str | None
-    email: str | None
-    direccion: str | None
     activo: bool
+
     model_config = ConfigDict(from_attributes=True)
 
 class DuenoListDTO(BaseModel):

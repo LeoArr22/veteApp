@@ -3,9 +3,10 @@ from pydantic import BaseModel, Field, ConfigDict
 class VeterinarioCreateDTO(BaseModel):
     """Datos obligatorios para registrar un veterinario nuevo."""
     nombre: str = Field(..., min_length=2, max_length=100)
-    matricula: str = Field(..., min_length=3, max_length=50)
-    especialidad: str | None = Field(None, max_length=100)
-    telefono: str | None = Field(None, max_length=20)
+    matricula: str = Field(..., min_length=3, max_length=50)    
+    # Opcionales al final
+    especialidad: str | None = Field(default=None, max_length=100)
+    telefono: str | None = Field(default=None, max_length=20)
 
 class VeterinarioUpdateDTO(BaseModel):
     """
@@ -17,13 +18,12 @@ class VeterinarioUpdateDTO(BaseModel):
     especialidad: str | None = Field(None, max_length=100)
     telefono: str | None = Field(None, max_length=20)
 
-class VeterinarioReadDTO(BaseModel):
-    """Datos que se devuelven a la interfaz."""
+class VeterinarioReadDTO(VeterinarioCreateDTO):
+    """
+    Representación completa que hereda las validaciones de CreateDTO 
+    y suma los campos generados por el sistema.
+    """
     id: int
-    nombre: str
-    matricula: str
-    especialidad: str | None
-    telefono: str | None
     activo: bool
 
     model_config = ConfigDict(from_attributes=True)

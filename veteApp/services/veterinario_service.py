@@ -1,16 +1,6 @@
-# services/veterinario_service.py
-
 from sqlalchemy.orm import Session
-from veteApp.database.repository.veterinario_repository import (
-    crear_veterinario,
-    obtener_veterinario_por_id,
-    obtener_veterinario_por_matricula,
-    obtener_veterinario_completo,
-    listar_veterinarios_activos,
-    listar_todos_los_veterinarios,
-    actualizar_veterinario,
-    cambiar_estado_veterinario
-)
+from database.repository.veterinario_repository import VeterinarioRepository
+from database.models import Veterinario
 from application.dto.veterinario_dto import (
     VeterinarioCreateDTO,
     VeterinarioReadDTO,
@@ -21,88 +11,47 @@ from exceptions.domain import (
     VeterinarioAlreadyExistsError
 )
 
-# ---------------------------------------------------------
-# REGISTRAR PROFESIONAL
-# ---------------------------------------------------------
-def crear_veterinario_service(db: Session, data: VeterinarioCreateDTO) -> VeterinarioReadDTO:
-    """
-    Crea un veterinario verificando que la matrícula sea única.
-    """
-    if obtener_veterinario_por_matricula(db, data.matricula):
-        raise VeterinarioAlreadyExistsError(f"La matrícula {data.matricula} ya está registrada")
-    
-    nuevo = crear_veterinario(
-        db,
-        nombre=data.nombre,
-        matricula=data.matricula,
-        especialidad=data.especialidad,
-        telefono=data.telefono
-    )
-    return VeterinarioReadDTO.model_validate(nuevo)
+class VeterinarioService:
+    def __init__(self):
+        # Inyectamos el repositorio
+        self.repository = VeterinarioRepository()
 
+    def registrar_profesional(self, db: Session, data: VeterinarioCreateDTO) -> VeterinarioReadDTO:
+        """Registra un veterinario verificando matrícula única."""
+        if self.repository.obtener_por_matricula(db, data.matricula):
+            raise VeterinarioAlreadyExistsError(f"La matrícula {data.matricula} ya existe")
+        
+        # Mapeo automático limpio
+        nuevo_vet = Veterinario(**data.model_dump(), activo=True)
+        
+        persistido = self.repository.crear(db, nuevo_vet)
+        return VeterinarioReadDTO.model_validate(persistido)
 
-# ---------------------------------------------------------
-# OBTENER VETERINARIO
-# ---------------------------------------------------------
-def obtener_veterinario_service(db: Session, veterinario_id: int) -> VeterinarioReadDTO:
-    """
-    Busca un veterinario activo.
-    """
-    vet = obtener_veterinario_por_id(db, veterinario_id)
-    if not vet:
-        raise VeterinarioNotFoundError(f"Veterinario con ID {veterinario_id} no encontrado")
-    
-    return VeterinarioReadDTO.model_validate(vet)
+    def obtener_por_id(self, db: Session, veterinario_id: int) -> VeterinarioReadDTO:
+        vet = self.repository.obtener_por_id(db, veterinario_id)
+        if not vet:
+            raise VeterinarioNotFoundError(f"Veterinario ID {veterinario_id} no encontrado")
+        return VeterinarioReadDTO.model_validate(vet)
 
+    def listar_profesionales(self, db: Session, solo_activos: bool = True) -> list[VeterinarioReadDTO]:
+        vets = self.repository.listar(db, solo_activos=solo_activos)
+        return [VeterinarioReadDTO.model_validate(v) for v in vets]
 
-# ---------------------------------------------------------
-# LISTAR VETERINARIOS
-# ---------------------------------------------------------
-def listar_veterinarios_service(db: Session, solo_activos: bool = True) -> list[VeterinarioReadDTO]:
-    """
-    Lista profesionales según el filtro de actividad (para el combo de selección o administración).
-    """
-    vets = listar_veterinarios_activos(db) if solo_activos else listar_todos_los_veterinarios(db)
-    return [VeterinarioReadDTO.model_validate(v) for v in vets]
+    def actualizar_datos(self, db: Session, veterinario_id: int, data: VeterinarioUpdateDTO) -> VeterinarioReadDTO:
+        vet = self.repository.obtener_por_id(db, veterinario_id)
+        if not vet:
+            raise VeterinarioNotFoundError(f"No se puede actualizar el veterinario {veterinario_id}")
+        
+        # Actualización dinámica usando el diccionario del DTO
+        actualizado = self.repository.actualizar(db, vet, data.model_dump(exclude_unset=True))
+        return VeterinarioReadDTO.model_validate(actualizado)
 
-
-# ---------------------------------------------------------
-# ACTUALIZAR VETERINARIO
-# ---------------------------------------------------------
-def actualizar_veterinario_service(db: Session, veterinario_id: int, data: VeterinarioUpdateDTO) -> VeterinarioReadDTO:
-    """
-    Actualiza datos de contacto o especialidad.
-    """
-    vet = obtener_veterinario_por_id(db, veterinario_id)
-    if not vet:
-        raise VeterinarioNotFoundError(f"No se puede actualizar: Veterinario {veterinario_id} no existe")
-    
-    # Pasamos los datos del DTO como un diccionario al repository
-    vet_actualizado = actualizar_veterinario(db, vet, **data.model_dump(exclude_unset=True))
-    return VeterinarioReadDTO.model_validate(vet_actualizado)
-
-
-# ---------------------------------------------------------
-# CAMBIAR ESTADO (BAJA/ALTA)
-# ---------------------------------------------------------
-def desactivar_veterinario_service(db: Session, veterinario_id: int) -> None:
-    """
-    Baja lógica del profesional.
-    """
-    vet = obtener_veterinario_por_id(db, veterinario_id)
-    if not vet:
-        raise VeterinarioNotFoundError(f"No se encontró el veterinario {veterinario_id}")
-    
-    cambiar_estado_veterinario(db, vet, estado=False)
-
-
-def reactivar_veterinario_service(db: Session, veterinario_id: int) -> VeterinarioReadDTO:
-    """
-    Restaura a un profesional inactivo.
-    """
-    vet = obtener_veterinario_completo(db, veterinario_id)
-    if not vet:
-        raise VeterinarioNotFoundError(f"El registro del veterinario {veterinario_id} no existe")
-    
-    cambiar_estado_veterinario(db, vet, estado=True)
-    return VeterinarioReadDTO.model_validate(vet)
+    def cambiar_disponibilidad(self, db: Session, veterinario_id: int, estado: bool) -> VeterinarioReadDTO:
+        """Maneja el alta y baja lógica del profesional."""
+        # Buscamos sin filtro de activo para permitir reactivación
+        vet = self.repository.obtener_por_id(db, veterinario_id, solo_activo=False)
+        if not vet:
+            raise VeterinarioNotFoundError(f"Registro de veterinario {veterinario_id} no encontrado")
+        
+        editado = self.repository.cambiar_estado(db, vet, estado=estado)
+        return VeterinarioReadDTO.model_validate(editado)

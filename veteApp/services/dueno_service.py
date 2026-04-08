@@ -48,26 +48,24 @@ class DuenoService:
         duenos = self.dueno_repo.listar(db, solo_activos=solo_activos)
         return [DuenoReadDTO.model_validate(d) for d in duenos]
 
-    def desactivar_dueno(self, db: Session, dueno_id: int) -> None:
-        """Baja lógica con validación de mascotas activas."""
-        dueno = self.dueno_repo.obtener_por_id(db, dueno_id)
-        if not dueno:
-            raise DuenoNotFoundError(f"No existe el dueño ID {dueno_id}")
-
-        # REGLA DE NEGOCIO: Validar integridad con pacientes
-        pacientes = self.paciente_repo.listar_por_dueno(db, dueno_id, solo_activos=True)
-        if pacientes:
-            raise DuenoConditionError(
-                f"El dueño tiene {len(pacientes)} mascota(s) activa(s). Debe gestionarlas primero."
-            )
-
-        self.dueno_repo.cambiar_estado(db, dueno, estado=False)
-
-    def reactivar_dueno(self, db: Session, dueno_id: int) -> DuenoReadDTO:
-        # Buscamos incluso entre los inactivos (solo_activo=False)
+    def cambiar_disponibilidad(self, db: Session, dueno_id: int, estado: bool) -> DuenoReadDTO:
+        """
+        Maneja el alta (True) o baja (False) lógica.
+        Incluye validación de integridad para bajas.
+        """
+        # Buscamos con solo_activo=False para poder reactivar
         dueno = self.dueno_repo.obtener_por_id(db, dueno_id, solo_activo=False)
         if not dueno:
-            raise DuenoNotFoundError(f"Registro de dueño ID {dueno_id} no encontrado")
-        
-        self.dueno_repo.cambiar_estado(db, dueno, estado=True)
-        return DuenoReadDTO.model_validate(dueno)
+            raise DuenoNotFoundError(f"Dueño ID {dueno_id} no encontrado")
+
+        # REGLA DE NEGOCIO: Si se intenta desactivar (estado=False)
+        if estado is False:
+            pacientes = self.paciente_repo.listar_por_dueno(db, dueno_id, solo_activos=True)
+            if pacientes:
+                raise DuenoConditionError(
+                    f"El dueño tiene {len(pacientes)} mascota(s) activa(s). No se puede dar de baja."
+                )
+
+        # Aplicamos el cambio (sea True o False)
+        actualizado = self.dueno_repo.cambiar_estado(db, dueno, estado=estado)
+        return DuenoReadDTO.model_validate(actualizado)
